@@ -13,10 +13,16 @@ The estimator is pluggable (a `ProbabilityModel` protocol): a Bayesian mixed-ker
 land close to each other, which is itself a finding: the estimator was never the bottleneck. **The label and the
 target were** — see the status note below.
 
+> **Start here: [Seven ways we fooled ourselves trying to beat Polymarket's 5-minute markets](https://madhur-guptaa.github.io/polymarket-5m-research/)**
+> The whole project in one read: the seven ways the research manufactured an edge that wasn't there,
+> how each was caught, and the one inefficiency that survived.
+> ([web page](https://madhur-guptaa.github.io/polymarket-5m-research/) · [markdown](writeup/false-edges.md))
+
 **Documentation map**
 
 | Read | For |
 |---|---|
+| [the write-up](https://madhur-guptaa.github.io/polymarket-5m-research/) | **the summary** — what went wrong, how we caught it, what survived |
 | this README | the answer, how the system fits together, how to run it |
 | [`WHITEPAPER.md`](WHITEPAPER.md) | the maths and the full argument — **§9 is the conclusion**; §1–8 describe the withdrawn original model |
 | [`RESEARCH_LOG.md`](RESEARCH_LOG.md) | every session in order: decisions, experiments, results, and the retractions |

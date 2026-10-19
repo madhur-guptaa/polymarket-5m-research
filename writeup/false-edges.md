@@ -1,6 +1,6 @@
 # Seven ways we fooled ourselves trying to beat Polymarket's 5-minute markets
 
-*Draft — 2026-10-19*
+*October 2026*
 
 For two months we had a trading strategy that was statistically significant. Scored one way, our live paper
 trades showed an edge at **z = +2.53**. Scored against what the market actually paid out, the *same trades*
