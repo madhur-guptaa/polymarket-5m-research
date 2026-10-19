@@ -1,0 +1,36 @@
+/* Tailwind v4 (CSS-first). Theme tokens below become `bg-surface`, `text-up`, etc. */
+@import "tailwindcss";
+
+@theme {
+  /* dark quant palette */
+  --color-bg: #080c10;          /* app background */
+  --color-panel: #0d1117;       /* card background */
+  --color-border: #1e2937;      /* hairlines */
+  --color-muted: #475569;       /* secondary text */
+  --color-fg: #e2e8f0;          /* primary text */
+  --color-up: #00ff87;          /* bullish / high P(up) */
+  --color-down: #ff4d6d;        /* bearish / low P(up) */
+  --color-accent: #38bdf8;      /* neutral accent */
+
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark scrollbars (WebKit) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--color-panel); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }

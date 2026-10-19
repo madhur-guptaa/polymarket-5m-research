@@ -1,0 +1,236 @@
+# Polaris — local infrastructure.
+#
+# Two ways to run this:
+#
+#   1. Postgres only, run the app bare-metal (the original workflow, still
+#      the default — nothing below changes it):
+#        docker compose up -d
+#        uv sync --extra mlx   # mlx extra: bare-metal only, see pyproject.toml
+#        uv run python -m polaris.main ingest / aggregate / serve   (separate terminals)
+#        cd frontend && npm run dev
+#
+#   2. The whole stack in containers (local dev convenience — opt in with
+#      --profile app; nothing here supports calibration, see the Dockerfile):
+#        docker compose --profile app up -d
+#      Then backfill once from the host (or `docker compose --profile app run --rm ingest \
+#      python -m polaris.main backfill --symbol BTCUSDT --days 14`), same as the bare-metal
+#      Quickstart. Dashboard at http://localhost:5174, API at http://localhost:8000.
+#      The profile also includes the two research collectors, book-collect and
+#      paper-trade, which are meant to run for days (see their comments below),
+#      plus `resolutions` (keeps the real settlement labels current and logs the
+#      label-disagreement rate hourly) and `chainlink-collect` (the TWAP series
+#      Polymarket settles on -- forward-only, so it should run continuously).
+#      Start a subset by naming services: `docker compose up -d ingest book-collect`.
+#      (5174, not Vite's usual 5173 -- avoids colliding with any other project's
+#      bare `npm run dev` also claiming 5173 on this machine.)
+#
+#   docker compose down            stop it (data persists in the named volume)
+#   docker compose down -v         stop it and WIPE all data
+#
+# Connection string for a bare-metal app process (matches the POSTGRES_*
+# defaults in .env): postgresql://polaris:polaris@localhost:5432/polaris
+#
+# The schema in polaris/core/schema.sql is applied by the app on startup
+# (ensure_schema), not here — this file only provisions the empty database.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: polaris-postgres
+    environment:
+      POSTGRES_USER: polaris
+      POSTGRES_PASSWORD: polaris
+      POSTGRES_DB: polaris
+    ports:
+      - "5432:5432"
+    volumes:
+      - polaris_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polaris -d polaris"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── --profile app: the containerized app services below ─────────────────
+  # All three share one image (see Dockerfile) and just run a different
+  # main.py subcommand. Bind-mounting polaris/ over the image's baked-in
+  # copy means editing code on the host takes effect on `docker compose
+  # restart <service>` — no image rebuild needed unless pyproject.toml/
+  # uv.lock changed.
+
+  ingest:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres   # override .env's localhost -- reach the container by service name
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "ingest"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  aggregate:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "aggregate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  serve:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "serve", "--host", "0.0.0.0"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # book-collect and paper-trade are the two research collectors. Both are
+  # forward-only by nature (order-book spread and live signals cannot be
+  # backfilled), so they need to run for days -- exactly why they belong here
+  # with restart: unless-stopped rather than under nohup on the host.
+  # Neither needs MLX: they use the numpy predict path, no calibration.
+
+  book-collect:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "book-collect"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  paper-trade:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "paper-trade"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # chainlink-collect pulls the TWAP-60s series Polymarket ACTUALLY settles on
+  # (see polaris/core/schema.sql, chainlink_twap). It belongs beside
+  # book-collect for the same reason: it is FORWARD-ONLY. The free relay serves
+  # only a snapshot of the trailing ~60 seconds and has no history endpoint, so
+  # an hour not collected is an hour that cannot be recovered at any price.
+  #
+  # --interval 30 against a ~58s snapshot depth means every second is captured
+  # about twice; the redundancy is the point, and measured coverage is 100%.
+  # Raising it near 58 will silently start leaving gaps.
+  chainlink-collect:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "chainlink-collect",
+              "--interval", "30", "--window", "60"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # late-paper: PAPER-only study of the last minute of each window, where the
+  # settling TWAP is partly locked in. Streams Chainlink spot and the live CLOB
+  # book (both free, no auth) and logs estimate + book every second. Forward-
+  # only, like book-collect: what it misses cannot be fetched later.
+  late-paper:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "late-paper"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # resolutions is the project's tripwire, and it is a SERVICE for a reason.
+  # poly_resolutions holds how Polymarket actually settled each window -- the
+  # only trustworthy label, since the Binance-derived outcome in
+  # window_observations disagrees with it on 8-11% of windows (concentrated in
+  # the flat ones that decide everything; see polaris/core/schema.sql). It is
+  # forward-only: a market has to settle before it can be read.
+  #
+  # It was left as a manual command once and went four days stale without
+  # anyone noticing. Every pass logs the current disagreement rate at WARNING,
+  # so drift shows up in `docker compose logs` instead of in a result six weeks
+  # later. The backfill is idempotent and fetches only missing windows, so the
+  # hourly pass costs ~12 requests per symbol in steady state; --days 7 is the
+  # catch-up window after downtime.
+  resolutions:
+    profiles: ["app"]
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+    volumes:
+      - ./polaris:/app/polaris
+    command: ["python", "-m", "polaris.main", "backfill-resolutions",
+              "--days", "7", "--interval", "3600",
+              "--symbol", "BTCUSDT", "--symbol", "ETHUSDT", "--symbol", "SOLUSDT",
+              "--symbol", "XRPUSDT", "--symbol", "DOGEUSDT", "--symbol", "BNBUSDT",
+              "--symbol", "HYPEUSDT", "--symbol", "ZECUSDT"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    profiles: ["app"]
+    image: node:22-slim
+    working_dir: /app
+    environment:
+      # vite.config.js reads this for its dev-server proxy; the frontend
+      # container reaches `serve` by its Compose service name, not localhost.
+      VITE_BACKEND: http://serve:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules   # don't let the host's (macOS) node_modules leak in
+    # npm ci, not install: installs exactly what package-lock.json says and
+    # never rewrites it -- `install` would (bind-mounted, so back onto the
+    # host file) on every version-field npm ships that this lockfile predates.
+    command: ["sh", "-c", "npm ci && npm run dev -- --host 0.0.0.0"]
+    ports:
+      - "5174:5173"   # host 5174: 5173 collides with other projects' bare Vite servers
+    depends_on:
+      - serve
+    restart: unless-stopped
+
+volumes:
+  polaris_pgdata:
+  frontend_node_modules:

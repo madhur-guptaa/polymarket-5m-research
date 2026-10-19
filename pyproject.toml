@@ -1,0 +1,36 @@
+[project]
+name = "arbitrage"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.139.2",
+    "httpx>=0.28.1",
+    "numpy>=2.5.1",
+    "optuna>=4.9.0",
+    "orjson>=3.11.9",
+    "pandas>=3.0.3",
+    "psycopg[binary,pool]>=3.3.4",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.2",
+    "python-dotenv>=1.2.2",
+    "scipy>=1.18.0",
+    "scipy-stubs~=1.18.0",
+    "uvicorn>=0.51.0",
+    "uvloop>=0.22.1",
+    "websockets>=16.1.1",
+]
+
+[project.optional-dependencies]
+# Apple Silicon GPU backend for real-scale calibration (calibrate --backend
+# mlx). Needs direct Metal access -- doesn't work in a Linux container (no
+# passthrough on Docker Desktop for Mac), so it's split out rather than a
+# base dependency: `uv sync --extra mlx` for bare-metal dev, plain
+# `uv sync` (no mlx) for the Docker image, which only ever runs
+# ingest/aggregate/serve (numpy predict path, no calibration).
+mlx = ["mlx>=0.32.0"]
+
+# Gradient-boosted challenger model (model/gbm, `backtest --model gbm`). Same
+# reasoning as mlx: it's a research/comparison path, never exercised by the
+# container's ingest/aggregate/serve, so it stays out of the base image.
+# On macOS it also needs the OpenMP runtime: `brew install libomp`.
+gbm = ["lightgbm>=4.7.0"]

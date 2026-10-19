@@ -1,0 +1,17 @@
+confluent-kafka
+psycopg[binary,pool]
+websockets
+python-dotenv
+orjson
+uvloop
+asyncio
+numpy
+# cupy-cuda12x
+scipy
+fastapi
+httpx
+uvicorn
+optuna
+matplotlib
+pandas
+mlx

@@ -1,0 +1,20 @@
+# Keep the build context small — only pyproject.toml/uv.lock/polaris/ actually
+# get COPY'd by the Dockerfile, but Docker still has to send the whole context
+# to the daemon first.
+.venv/
+node_modules/
+frontend/
+.git/
+.idea/
+.vscode/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.log
+temp_binance_data/
+.DS_Store
+RESEARCH_LOG.md
+README.md
