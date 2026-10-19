@@ -1,6 +1,6 @@
 # Seven ways we fooled ourselves trying to beat Polymarket's 5-minute markets
 
-*Draft — 2026-10-09*
+*Draft — 2026-10-19*
 
 For two months we had a trading strategy that was statistically significant. Scored one way, our live paper
 trades showed an edge at **z = +2.53**. Scored against what the market actually paid out, the *same trades*
@@ -55,7 +55,7 @@ On real prices: **52.5% on 101 trades.** Coin flip.
 ## 2. Unbiased noise, biased results
 
 Next we tried individual trade prints as the price. These were genuinely second-resolution and, on average,
-honest: their mean error against the book was **+0.0006**.
+honest: their mean error against the book was **+0.06¢**.
 
 They still produced a fake edge. A trading rule only acts when the model and the price *disagree* by more
 than a threshold — and noise is exactly what makes them disagree. The filter selected the seconds where noise
@@ -119,8 +119,8 @@ The same mistake, the other way round, inflates fake wins just as easily.
 ## 5. The fee nobody charged
 
 Polymarket charges takers **0.07 × p × (1 − p)** per share: 1.75¢ on a 50¢ contract, close to 4% of the price.
-We had modelled the spread carefully and never charged this fee. Every edge we had ever measured was
-comparable in size.
+We had modelled the spread carefully and never charged this fee, and every edge we had measured was about
+the size of the fee.
 
 With fees, the live results were **−15.0%** (z −5.6) for the original model and **−14.9%** for the improved
 one.
@@ -174,7 +174,7 @@ After fees, with real prices and real outcomes, nothing we tried makes money on 
 | Strategy | Result |
 |---|---|
 | Forecast better than the market | still behind it |
-| Trade the final minute, as the settling average locks in | −5.4¢ per share, live |
+| Trade the last 30 seconds, as the settling average locks in | −5.4¢ per share, live |
 | Market making, naive or model-selected | break-even at best |
 | Buy favourites / long shots | loses in every price range |
 | Buy near-certain outcomes at 99¢ | break-even, no volume |
@@ -207,6 +207,6 @@ leave-one-day-out all failed to kill it.
 
 ---
 
-*The code, the research log (every session, including the retracted results) and the analysis scripts are in
-the project repository. Related work: Dai, Jia & Yu, "Settlement Manipulation in Prediction Markets" (2026);
+*The code, the research log (every session, including the retracted results) and the analysis scripts are on
+GitHub: [madhur-guptaa/polymarket-5m-research](https://github.com/madhur-guptaa/polymarket-5m-research). Related work: Dai, Jia & Yu, "Settlement Manipulation in Prediction Markets" (2026);
 Wang, "Does a Time-Weighted Average Price Deter Settlement Manipulation?" (2026).*

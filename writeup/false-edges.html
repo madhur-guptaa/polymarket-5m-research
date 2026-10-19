@@ -103,7 +103,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
 
 <div class="page">
   <header class="hero">
-    <div class="eyebrow">Polymarket · 5-minute Bitcoin markets · <span class="draft">Draft · 9 Oct 2026</span></div>
+    <div class="eyebrow">Polymarket · 5-minute Bitcoin markets · <span class="draft">Draft · 19 Oct 2026</span></div>
     <h1>Seven ways we fooled ourselves trying to beat Polymarket's 5-minute markets</h1>
     <div class="flip" aria-label="The same 1,553 paper trades, scored two ways">
       <div class="was">
@@ -117,15 +117,15 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
         <span class="label">return on capital −12.7%</span>
       </div>
     </div>
-    <p class="lede">For two months we had a trading strategy that looked statistically significant. The same 1,553 paper trades came out at z = +2.53 one way and z = −4.41 the other. Nothing about the trades changed. Only the label did.</p>
-    <p>This is every way our research manufactured an edge that wasn't there. There are seven, each caught by a specific test, and one real inefficiency survived. If you build backtests, at least one of these is probably in yours.</p>
+    <p class="lede">For two months we had a trading strategy that looked statistically significant. The two scores above come from the same 1,553 paper trades. Nothing about the trades changed. Only the label did.</p>
+    <p>Here are the seven ways our research manufactured an edge that wasn't there, how we caught each one, and the one real inefficiency that survived. If you build backtests, at least one of these is probably in yours.</p>
   </header>
 
   <article>
     <section>
       <h2>The setup</h2>
       <p>Polymarket runs binary markets on whether Bitcoin will be higher at the end of each five-minute window than at the start. A correct share pays $1. Thousands of these contracts trade every day, mostly against bots.</p>
-      <p>Our idea was ordinary. We used Binance order flow (price drift, momentum, buy/sell imbalance, volatility) to estimate the probability of "Up" at every second of the window, compared it with the market's price, and traded when we disagreed enough. We built it properly: a Bayesian kernel estimator, a gradient-boosted challenger, cross-validation that kept the ~300 correlated seconds of each window together, walk-forward backtests, a live paper-trading recorder and a dashboard. Nothing ever placed a real order.</p>
+      <p>Our idea was ordinary. We used Binance order flow (price drift, momentum, buy/sell imbalance, volatility) to estimate the probability of "Up" at every second of the window, and traded when the market's price disagreed with ours by enough. The engineering was careful: two model classes, cross-validation that kept each window's ~300 correlated seconds together, walk-forward backtests and a live paper-trading recorder. Nothing ever placed a real order.</p>
       <p>The first headline was a <span class="mono">60.9%</span> win rate over <span class="mono">12,571</span> backtested trades, roughly 24 standard deviations above chance. A stricter test on days that didn't exist when we tuned the model said <span class="mono">62.7%</span>. All of it was wrong.</p>
     </section>
 
@@ -148,7 +148,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
         <span class="arrow" aria-hidden="true">→</span>
         <div class="actual"><span class="k">On the trades we took</span><span class="v">one-sided</span></div>
       </div>
-      <p>Next we used individual trade prints as the price. They had second-level resolution and, on average, they were honest: their mean error against the order book was <span class="mono">+0.0006</span>. They still produced a fake edge.</p>
+      <p>Next we used individual trade prints as the price. They had second-level resolution and, on average, they were honest: their mean error against the order book was <span class="mono">+0.06¢</span>. They still produced a fake edge.</p>
       <p>A trading rule acts only when the model and the price disagree by more than a threshold, and noise is exactly what makes them disagree. The filter picked out the seconds where noise had made a contract look cheap. Zero-mean noise went in and a positive "edge" came out.</p>
       <p class="rule"><b>Rule</b>Errors that average to zero don't protect you when the strategy selects on the error. Any threshold rule turns symmetric noise into a one-sided bias.</p>
     </section>
@@ -202,7 +202,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
       <p>The label was right when the answer was obvious and close to a coin flip when it was hard. The hard windows are the only ones where a model can make money.</p>
       <p>It did more than add noise. Grading Polymarket's prices against our label made the market look poor, with a Brier score of <span class="mono">0.201</span>. Against real outcomes the market scored <span class="mono">0.159</span>. Our model, which had appeared to beat the market as a forecaster, was behind it (<span class="mono">0.187</span> vs <span class="mono">0.159</span>). As the sample grew, the bad label made the fake result more significant, not less.</p>
       <p>We caught it through an anomaly in the last seconds of each window. When the market priced a side above 90¢ twenty seconds before resolution, it was "right" by our label only <span class="mono">57%</span> of the time. A real market that close to settlement should be right more than nine times in ten. So we checked our ruler instead of the market.</p>
-      <p>The settlement rule turned out to be: Up if Chainlink's 60-second average price at the window's last second is at least its value at the first. That matched <span class="mono">99.79%</span> of <span class="mono">2,421</span> windows. Polymarket had moved from a single price snapshot to a time-weighted average on 7 August (30 seconds at first, 60 seconds from 14 August), after researchers showed traders were pushing the price in the final seconds. Before the switch our Binance label agreed with settlement 95.8% of the time. After it, only 88%. Our training data straddled the switch.</p>
+      <p>A window settles Up if Chainlink's 60-second average price at its last second is at least that average at its first. That rule matched <span class="mono">99.79%</span> of <span class="mono">2,421</span> windows. Polymarket had switched from a single price snapshot to this average on 7 August, after researchers showed traders pushing the price in the final seconds. Our Binance label agreed with settlement 95.8% of the time before the switch and 88% after it, and our training data straddled the switch.</p>
       <p class="rule"><b>Rule</b>Read the contract before you model it, and grade against what pays out, never a proxy for it. Here the true outcome was available for every window.</p>
     </section>
 
@@ -224,7 +224,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
         <span class="arrow" aria-hidden="true">→</span>
         <div class="actual"><span class="k">Live results with fees</span><span class="v">−15.0% · −14.9%</span></div>
       </div>
-      <p>Polymarket charges takers <span class="mono">0.07 × p × (1 − p)</span> per share. On a 50¢ contract that's 1.75¢, close to 4% of the price. We had modelled the spread carefully and never charged this fee. Every edge we measured was about the same size.</p>
+      <p>Polymarket charges takers <span class="mono">0.07 × p × (1 − p)</span> per share. On a 50¢ contract that's 1.75¢, close to 4% of the price. We had modelled the spread carefully and never charged this fee, and every edge we had measured was about the size of the fee.</p>
       <figure>
         <div class="chart">
           <svg viewBox="0 0 560 200" role="img" aria-labelledby="c2t">
@@ -288,7 +288,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
           <thead><tr><th>Strategy</th><th>Result</th></tr></thead>
           <tbody>
             <tr><td>Forecast better than the market</td><td><span class="lose">still behind it</span></td></tr>
-            <tr><td>Trade the final minute, as the settling average locks in</td><td class="num"><span class="lose">−5.4¢ per share, live</span></td></tr>
+            <tr><td>Trade the last 30 seconds, as the settling average locks in</td><td class="num"><span class="lose">−5.4¢ per share, live</span></td></tr>
             <tr><td>Market making, naive or chosen by the model</td><td><span class="even">break-even at best</span></td></tr>
             <tr><td>Buy favourites or long shots</td><td><span class="lose">loses in every price range</span></td></tr>
             <tr><td>Buy near-certain outcomes at 99¢</td><td><span class="even">break-even, no volume</span></td></tr>
@@ -319,7 +319,7 @@ footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ru
   </article>
 
   <footer>
-    <p>Research only: no real money was traded, and nothing in the project places orders. The code, the research log (every session, including the retracted results) and the analysis scripts are in the project repository.</p>
+    <p>Research only: no real money was traded, and nothing in the project places orders. The code, the research log (every session, including the retracted results) and the analysis scripts are on GitHub at <a href="https://github.com/madhur-guptaa/polymarket-5m-research">madhur-guptaa/polymarket-5m-research</a>.</p>
     <p>Related work: Dai, Jia &amp; Yu, <a href="https://arxiv.org/abs/2606.31675">Settlement Manipulation in Prediction Markets</a> (2026); Wang, <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7445139">Does a Time-Weighted Average Price Deter Settlement Manipulation?</a> (2026).</p>
   </footer>
 </div>
